@@ -12,41 +12,28 @@ st.set_page_config(
 
 # Fungsi untuk download model dari Google Drive
 @st.cache_resource(show_spinner=False)
-def load_model_from_drive(file_id, model_name):
+def load_model_from_github(url, model_name):
     try:
         model_path = tempfile.NamedTemporaryFile(delete=False, suffix='.h5').name
-        URL = f"https://drive.google.com/uc?export=download&id={file_id}"
-        session = requests.Session()
-        
-        response = session.get(URL, stream=True)
-        token = None
+        response = requests.get(url, stream=True)
+        response.raise_for_status()
 
-        for key, value in response.cookies.items():
-            if key.startswith('download_warning'):
-                token = value
-        
-        if token:
-            params = {'id': file_id, 'confirm': token}
-            response = session.get(URL, params=params, stream=True)
-
-        CHUNK_SIZE = 32768
         with open(model_path, "wb") as f:
-            for chunk in response.iter_content(CHUNK_SIZE):
-                if chunk:
-                    f.write(chunk)
+            for chunk in response.iter_content(1024):
+                f.write(chunk)
 
         model = tf.keras.models.load_model(model_path)
         return model
-        
+
     except Exception as e:
         st.error(f"Gagal memuat model {model_name}: {str(e)}")
         return None
 
-EFFICIENTNET_MODEL_ID = '1-MaNfSMFhaD65GSl-t2hWLyNZb6RijmV'
-XCEPTION_MODEL_ID = '1DarK4ogUpl62jTyCXIBTkn_3HDM7Cmry'
+EFFICIENTNET_MODEL_URL = "https://github.com/vidyasintabillkis/SKRIPSI/releases/download/v1.0.0/efficientnetv2b0_6.h5"
+XCEPTION_MODEL_URL = "https://github.com/vidyasintabillkis/SKRIPSI/releases/download/v1.0.0/xception_6.h5"
 
-model_efficientnet = load_model_from_drive(EFFICIENTNET_MODEL_ID, "EfficientNetV2")
-model_xception = load_model_from_drive(XCEPTION_MODEL_ID, "Xception")
+model_efficientnet = load_model_from_github(EFFICIENTNET_MODEL_URL, "EfficientNetV2")
+model_xception = load_model_from_github(XCEPTION_MODEL_URL, "Xception")
 
 if model_efficientnet is None or model_xception is None:
     st.error("Aplikasi tidak dapat berjalan tanpa model. Silakan hubungi administrator.")
